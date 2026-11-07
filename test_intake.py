@@ -1,8 +1,20 @@
 import sys
-sys.path.insert(0, '/working_dir/c_091f4c4879d0f9ea/grievance_automation/src/intake')
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+SRC_DIR = ROOT_DIR / "src"
+
+for p in [str(ROOT_DIR), str(SRC_DIR), str(SRC_DIR / "intake")]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 import json
-from parser import EmailGrievanceParser
+try:
+    from src.intake.parser import EmailGrievanceParser
+    from src.intake.models import to_json
+except (ImportError, ValueError):
+    from parser import EmailGrievanceParser
+    from models import to_json
 
 sample_email_1 = """From: Rajiv Malhotra <rajiv.malhotra82@gmail.com>
 To: grievance.redressal@axisbank.bank.in
@@ -45,8 +57,8 @@ if __name__ == "__main__":
     
     print("=== Testing Sample 1: Credit Card Dispute with Ombudsman Escalation ===")
     res1 = parser.parse_raw_email(sample_email_1)
-    print(res1.json(indent=2))
+    print(to_json(res1, indent=2))
     
     print("\n=== Testing Sample 2: Home Loan Foreclosure Dispute ===")
     res2 = parser.parse_raw_email(sample_email_2)
-    print(res2.json(indent=2))
+    print(to_json(res2, indent=2))

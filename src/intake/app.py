@@ -1,12 +1,23 @@
 import sys
-sys.path.insert(0, '/working_dir/c_091f4c4879d0f9ea/grievance_automation/src/intake')
+from pathlib import Path
+
+# Dynamic multi-platform path setup
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+SRC_DIR = ROOT_DIR / "src"
+for p in [str(ROOT_DIR), str(SRC_DIR), str(SRC_DIR / "intake")]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from models import GrievanceCaseOutput
-from parser import EmailGrievanceParser
+try:
+    from src.intake.models import GrievanceCaseOutput, to_dict
+    from src.intake.parser import EmailGrievanceParser
+except (ImportError, ValueError):
+    from models import GrievanceCaseOutput, to_dict
+    from parser import EmailGrievanceParser
 
 app = FastAPI(
     title="Grievance Redressal Automation - Email Intake Service",
@@ -17,10 +28,10 @@ app = FastAPI(
 parser = EmailGrievanceParser()
 
 class EmailInputPayload(BaseModel):
-    sender_name: Optional[str] = Field(None, example="Rajiv Malhotra")
-    sender_email: str = Field(..., example="rajiv.malhotra82@gmail.com")
-    subject: str = Field(..., example="URGENT: Unauthorized transaction on Credit Card - Escalation to RBI Ombudsman")
-    body: str = Field(..., example="Dear Nodal Officer, unauthorized charge of Rs. 48,500 on card ending 4491...")
+    sender_name: Optional[str] = Field(None, description="Sender name")
+    sender_email: str = Field(..., description="Sender email address")
+    subject: str = Field(..., description="Email subject")
+    body: str = Field(..., description="Email body content")
     received_at: Optional[str] = None
 
 @app.get("/health")
@@ -30,7 +41,7 @@ def health_check():
 @app.post("/api/v1/ingest/email", response_model=GrievanceCaseOutput)
 def ingest_email(payload: EmailInputPayload):
     try:
-        return parser.process_email_payload(payload.dict())
+        return parser.process_email_payload(to_dict(payload))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,18 +1,30 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 
+def to_dict(model_instance: Any) -> dict:
+    """Helper for Pydantic V1 and V2 dual compatibility."""
+    if hasattr(model_instance, "model_dump"):
+        return model_instance.model_dump()
+    return model_instance.dict()
+
+def to_json(model_instance: Any, indent: int = 2) -> str:
+    """Helper for Pydantic V1 and V2 JSON dump."""
+    if hasattr(model_instance, "model_dump_json"):
+        return model_instance.model_dump_json(indent=indent)
+    return model_instance.json(indent=indent)
+
 class ProductDomain(str, Enum):
-    ACCOUNTS_AND_DEPOSITS = "ACCOUNTS_AND_DEPOSITS" # Routed to Finacle
-    CARDS = "CARDS"                                 # Routed to CTL Prime
-    LENDING_ASSETS = "LENDING_ASSETS"               # Routed to FinOne
-    LIABILITIES = "LIABILITIES"                     # Routed to Liabilities / Finacle
-    GENERAL_SERVICES = "GENERAL_SERVICES"           # Routed to CRMNext / Branch Ops
+    ACCOUNTS_AND_DEPOSITS = "ACCOUNTS_AND_DEPOSITS"
+    CARDS = "CARDS"
+    LENDING_ASSETS = "LENDING_ASSETS"
+    LIABILITIES = "LIABILITIES"
+    GENERAL_SERVICES = "GENERAL_SERVICES"
 
 class PriorityLevel(str, Enum):
-    P1_CRITICAL = "P1_CRITICAL"   # Regulatory Ombudsman, high amount, legal notice
-    P2_HIGH = "P2_HIGH"           # Substantial financial loss, repeated follow-up
-    P3_STANDARD = "P3_STANDARD"   # General inquiry, routine service turnaround
+    P1_CRITICAL = "P1_CRITICAL"
+    P2_HIGH = "P2_HIGH"
+    P3_STANDARD = "P3_STANDARD"
 
 class GrievanceSubCategory(str, Enum):
     UNAUTHORIZED_TRANSACTION = "UNAUTHORIZED_TRANSACTION"
@@ -50,21 +62,13 @@ class GrievanceCaseOutput(BaseModel):
     sender_name: str = Field(..., description="Extracted sender display name")
     sender_email: str = Field(..., description="Sender email address")
     subject: str = Field(..., description="Email subject")
-    
-    # Classification & Triaging
     product_domain: ProductDomain = Field(..., description="Primary product line")
     sub_category: GrievanceSubCategory = Field(..., description="Specific grievance type")
     priority: PriorityLevel = Field(..., description="Triage priority level")
-    
-    # Details & Entities
     customer_identifiers: CustomerIdentifiers
     financial_dispute: FinancialDispute
     regulatory_details: RegulatoryDetails
-    
-    # Narrative & Synthesis
     narrative_summary: str = Field(..., description="Structured summary of the issue")
     demanded_remedy: str = Field(..., description="Remedy demanded by customer")
-    
-    # RPA Routing Instructions
     target_skilled_adapters: List[str] = Field(..., description="Core systems to query (Finacle, CTL Prime, FinOne, etc.)")
     requires_human_oversight: bool = Field(False, description="If true, case handover must flag for compliance officer")

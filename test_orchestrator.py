@@ -1,18 +1,24 @@
 import sys
-base = '/working_dir/c_091f4c4879d0f9ea/grievance_automation'
-sys.path.extend([
-    base,
-    f'{base}/src',
-    f'{base}/src/intake',
-    f'{base}/src/storage',
-    f'{base}/src/adapters',
-    f'{base}/src/orchestration'
-])
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+SRC_DIR = ROOT_DIR / "src"
+
+for p in [str(ROOT_DIR), str(SRC_DIR), str(SRC_DIR / "intake"), str(SRC_DIR / "storage"), str(SRC_DIR / "adapters"), str(SRC_DIR / "orchestration")]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 import json
-from parser import EmailGrievanceParser
-from db import SRRepository
-from orchestrator import CaseHandlingOrchestrator
+try:
+    from src.intake.parser import EmailGrievanceParser
+    from src.intake.models import to_dict
+    from src.storage.db import SRRepository
+    from src.orchestration.orchestrator import CaseHandlingOrchestrator
+except (ImportError, ValueError):
+    from parser import EmailGrievanceParser
+    from models import to_dict
+    from db import SRRepository
+    from orchestrator import CaseHandlingOrchestrator
 
 sample_email_1 = """From: Rajiv Malhotra <rajiv.malhotra82@gmail.com>
 To: grievance.redressal@axisbank.bank.in
@@ -59,7 +65,7 @@ if __name__ == "__main__":
     print("TEST CASE 1: Credit Card Dispute (CTL Prime, Finacle, Data Lake)")
     print("=" * 65)
     case_1 = parser.parse_raw_email(sample_email_1)
-    docket_1 = orch.process_case(case_1.dict())
+    docket_1 = orch.process_case(to_dict(case_1))
     print("\n[INVESTIGATION DOCKET SUMMARY]")
     print(f"SR ID: {docket_1['sr_id']}")
     print(f"Systems Queried: {list(docket_1['evidence'].keys())}")
@@ -74,7 +80,7 @@ if __name__ == "__main__":
     print("TEST CASE 2: Home Loan Foreclosure Charge Dispute (FinOne Neo)")
     print("=" * 65)
     case_2 = parser.parse_raw_email(sample_email_2)
-    docket_2 = orch.process_case(case_2.dict())
+    docket_2 = orch.process_case(to_dict(case_2))
     print("\n[INVESTIGATION DOCKET SUMMARY]")
     print(f"SR ID: {docket_2['sr_id']}")
     print(f"Systems Queried: {list(docket_2['evidence'].keys())}")
